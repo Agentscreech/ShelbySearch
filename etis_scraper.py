@@ -145,27 +145,3 @@ def calc_check_digit(vin_to_calc, total):
         check_digit = "X"
     calculated_vin = vin_to_calc.replace("_", str(check_digit))
     return calculated_vin
-
-
-
-def generate_2017gt350_vins(r=False):
-    '''generate all vins 1-9999 and then send to calc_check_digit for final number'''
-    if r:
-        base_vin = "1FATP8JZ_H552"
-    else:
-        base_vin = "1FA6P8JZ_H552"
-    counter = 1
-    all_possible_vins = []
-    while counter < 9999:
-        vin = base_vin
-        missing = len(str(counter))
-        while len(vin) < 17-missing:
-            vin += "0"
-        vin += str(counter)
-        if vin[3] == "T":
-            total = 374
-        else:
-            total = 389
-        all_possible_vins.append(calc_check_digit(vin, total))
-        counter += 1
-    return all_possible_vins

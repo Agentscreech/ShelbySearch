@@ -3,7 +3,7 @@ import time
 import random
 from flask import Flask, send_file, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from car_scraper import *
+from etis_scraper import *
 from autotrader_scraper import *
 app = Flask(__name__)
 app.config.from_object(os.environ["APP_SETTINGS"])
@@ -91,17 +91,15 @@ def search_autotrader():
         autotrader_cars.append(new_car)
     #now that we have the vin for each car, check the DB for options
     #if it's not in the DB, serach and add it
+    print("getting build options")
     for car in autotrader_cars:
-        print("car before db", car)
         build_options = get_car_build_options(car["vin"])
         for option in build_options:
             car[option] = build_options[option]
-        print("car after db", car)
     return jsonify(autotrader_cars),200
 
 
-    return "got it "
-
+# @app.route("/add_<year>")
 
 def get_car_build_options(vin):
     '''query db and set results to object to return'''
@@ -127,112 +125,6 @@ def get_car_build_options(vin):
 
     return options
 
-@app.route("/add_<year>")
-# def scrape_year(year):
-#     print("starting to scrape")
-#     vins = generate_2017gt350_vins()
-#     print("vins generated")
-#     proxies = [
-#         {'https': 'http://66.70.191.215:1080', 'http':'http://66.70.191.215:1080'},
-#         # {'https': 'http://104.41.154.213:8118', 'http': 'http://104.41.154.213:8118'},
-#         # {'https': 'http://54.204.31.39:4000', 'http': 'http://54.204.31.39:4000'},
-#         # {'https': 'http://45.32.161.20:1080', 'http': 'http://45.32.161.20:1080'},
-#         # {'https': 'http://162.243.55.213:8118', 'http': 'http://162.243.55.213:8118'},
-#         # {'https': 'http://209.212.248.53:80', 'http': 'http://209.212.248.53:80'},
-#         # {'https': 'http://209.212.253.18:1080', 'http': 'http://209.212.253.18:1080'},
-#         # {'https': 'http://103.11.67.192:3128', 'http': 'http://103.11.67.192:3128'},
-#         # {'https': 'http://191.96.227.75:62222', 'http': 'http://191.96.227.75:62222'}
-#     ]
-#     proxy = random.choice(proxies)
-#     print("trying with proxy", proxy)
-#     try:
-#         set_cookies = requests.get("https://www.etis.ford.com/vehicleSelection.do", proxies=proxy)
-#     except:
-#         return "cookie request error"
-#     time_of_cookie = time.time()
-#     print("got", len(vins), "vins")
-#     for vin in vins:
-#         print("checking", vin)
-#         is_invalid = db.session.query(Invalid).filter_by(vin=vin).first()
-#         db_check = db.session.query(Result).filter_by(vin=vin).first()
-#         now = time.time()
-#         if now-time_of_cookie > 600:
-#             print("getting new cookie")
-#             set_cookies = requests.get("https://www.etis.ford.com/vehicleSelection.do", proxies=proxy)
-#             time_of_cookie = time.time()
-#         if db_check is None and is_invalid is None:
-#             #randomize proxy before sending
-#             proxy = random.choice(proxies)
-#             details = get_car_details(vin, set_cookies.cookies, proxy)
-#             if details == "retry":
-#                 print("Service Unavailable while getting details")
-#             elif details is False:
-#                 #add the vin to the invalid table
-#                 print("invalid, adding to invalid table")
-#                 invalid_vin = Invalid(vin)
-#                 try:
-#                     db.session.add(invalid_vin)
-#                     db.session.commit()
-#                 except:
-#                     print("Unable to add item to database.")
-#             else:
-#                 #add the car to the cars table
-#                 print("adding car to cars table")
-#                 get_or_create_car(vin, year, details)
-#     return "DONE!, CHECK THE DB"
-
-
-def scrape_vin(vin):
-    print("starting to scrape")
-
-    proxies = [
-        {'https': 'http://66.70.191.215:1080', 'http':'http://66.70.191.215:1080'},
-        # {'https': 'http://104.41.154.213:8118', 'http': 'http://104.41.154.213:8118'},
-        # {'https': 'http://54.204.31.39:4000', 'http': 'http://54.204.31.39:4000'},
-        # {'https': 'http://45.32.161.20:1080', 'http': 'http://45.32.161.20:1080'},
-        # {'https': 'http://162.243.55.213:8118', 'http': 'http://162.243.55.213:8118'},
-        # {'https': 'http://209.212.248.53:80', 'http': 'http://209.212.248.53:80'},
-        # {'https': 'http://209.212.253.18:1080', 'http': 'http://209.212.253.18:1080'},
-        # {'https': 'http://103.11.67.192:3128', 'http': 'http://103.11.67.192:3128'},
-        # {'https': 'http://191.96.227.75:62222', 'http': 'http://191.96.227.75:62222'}
-    ]
-    proxy = random.choice(proxies)
-    print("trying with proxy", proxy)
-    try:
-        set_cookies = requests.get("http://www.etis.ford.com/vehicleSelection.do", proxies=proxy)
-    except:
-        return "cookie request error"
-    time_of_cookie = time.time()
-    print("got", len(vins), "vins")
-    for vin in vins:
-        print("checking", vin)
-        is_invalid = db.session.query(Invalid).filter_by(vin=vin).first()
-        db_check = db.session.query(Result).filter_by(vin=vin).first()
-        now = time.time()
-        if now-time_of_cookie > 600:
-            print("getting new cookie")
-            set_cookies = requests.get("https://www.etis.ford.com/vehicleSelection.do", proxies=proxy)
-            time_of_cookie = time.time()
-        if db_check is None and is_invalid is None:
-            #randomize proxy before sending
-            proxy = random.choice(proxies)
-            details = get_car_details(vin, set_cookies.cookies, proxy)
-            if details == "retry":
-                print("Service Unavailable while getting details")
-            elif details is False:
-                #add the vin to the invalid table
-                print("invalid, adding to invalid table")
-                invalid_vin = Invalid(vin)
-                try:
-                    db.session.add(invalid_vin)
-                    db.session.commit()
-                except:
-                    print("Unable to add item to database.")
-            else:
-                #add the car to the cars table
-                print("adding car to cars table")
-                get_or_create_car(vin, year, details)
-    return "DONE!, CHECK THE DB"
 
 
 def format_params(options):

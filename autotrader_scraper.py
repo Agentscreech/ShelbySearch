@@ -20,7 +20,6 @@ def find_listings(params):
         urls.append(link.get('href').split("&")[0])
     for distance in results_soup.find_all(attrs={"data-qaid": "cntnr-dlrlstng-radius"}):
         distances.append(distance.get_text())
-    # print("found", len(urls), "urls")
     return urls, distances
 
 
