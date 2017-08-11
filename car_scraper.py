@@ -1,13 +1,40 @@
 import requests
-
+import re
 from bs4 import BeautifulSoup
+
+def find_proxies():
+    proxies = []
+    proxy_html = requests.get("http://us-proxy.org")
+    soup = BeautifulSoup(proxy_html.content, "html.parser")
+    data = soup.find_all("td")
+    ip = re.compile(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', re.UNICODE)
+    for i,row in enumerate(data):
+        if row.get_text():
+            if ip.match(row.get_text()):
+                proxy = {"http":""}
+                proxy["http"] = "http://"+row.get_text()+":"+data[i+1].get_text()
+                proxies.append(proxy)
+    return proxies
+
+def test_proxies(proxies):
+    print("testing proxies")
+    valid_proxies = []
+    for proxy in proxies:
+        try:
+            test_server = requests.get("http://www.etis.ford.com/vehicleSelection.do", proxies=proxy, timeout=5)
+        except requests.exceptions.RequestException as e:
+            pass
+        if test_server.status_code == 200:
+            valid_proxies.append(proxy)
+            print(proxy, "was valid")
+    return valid_proxies
 
 
 def get_car_details(vin_number, cookies, proxies):
     '''this should grab the deatils from Fords ETIS site
     and then returns and object to query the DB with'''
 
-    url = "https://www.etis.ford.com/vehicleSelection.do"
+    url = "http://www.etis.ford.com/vehicleSelection.do"
     #need the cookies to send a post request with vin, so just query the site to grab one
     # try:
     #     set_cookies = requests.get(url)
@@ -15,42 +42,51 @@ def get_car_details(vin_number, cookies, proxies):
     #     print("initial request failed")
     querystring = {"vin":vin_number, "lookupType":"vin"}
 
+    # headers = {
+    #     'host': "www.etis.ford.com",
+    #     'connection': "keep-alive",
+    #     'content-length': "36",
+    #     'pragma': "no-cache",
+    #     'cache-control': "no-cache",
+    #     'origin': "http://www.etis.ford.com",
+    #     'upgrade-insecure-requests': "1",
+    #     'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
+    #     'content-type': "application/x-www-form-urlencoded",
+    #     'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    #     'dnt': "1",
+    #     'referer': "http://www.etis.ford.com/vehicleRegSelector.do",
+    #     'accept-encoding': "gzip, deflate, br",
+    #     'accept-language': "en-US,en;q=0.8"
+    #     }
     headers = {
-        'host': "www.etis.ford.com",
-        'connection': "keep-alive",
-        'content-length': "36",
-        'pragma': "no-cache",
-        'cache-control': "no-cache",
-        'origin': "https://www.etis.ford.com",
-        'upgrade-insecure-requests': "1",
         'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36",
-        'content-type': "application/x-www-form-urlencoded",
-        'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        'dnt': "1",
-        'referer': "https://www.etis.ford.com/vehicleRegSelector.do",
-        'accept-encoding': "gzip, deflate, br",
-        'accept-language': "en-US,en;q=0.8"
-        }
-    try:
-        car_details_html = requests.post(url, headers=headers, data=querystring, cookies=cookies, proxies=proxies)
-    except:
-        print("ETIS site query failed")
-        return "retry"
-    car_details_soup = BeautifulSoup(car_details_html.content, "html.parser")
+        'Accept':"*/*",
+        'Host':"www.etis.ford.com",
+        'accept-encoding':"gzip, deflate",
+        'content-length':""
+    }
+    for i in range(10):
+        print("attempt", i, "of 10")
+        try:
+            car_details_html = requests.post(url, headers=headers, data=querystring, cookies=cookies, proxies=proxies, timeout=30)
+            print("post status code", car_details_html.status_code)
+            car_details_soup = BeautifulSoup(car_details_html.content, "html.parser")
+            status = car_details_soup.find("title").get_text().strip() # shoule be Vehical Summary
+            if "Summary" in status:
+                #handle Unavailable and don't update the DB for it
+                # print(status)
+                break
+        except:
+            print("ETIS site query failed")
+        # else:
+        #     break
     #title should be Vehical Summary. If it's Vehical Lookup, it was invalid
-    status = car_details_soup.find("title").get_text().strip() # shoule be Vehical Summary
-    if "Lookup" in status:
-        return False
-    if "Unavailable" in status:
-        #handle Unavailable and don't update the DB for it
-        # print(status)
-        return "retry"
     print(status)
     primary_features_section = car_details_soup.find(id="pfcSummary")
     primary_features = primary_features_section.find_all(class_="summaryContent")
     options = {}
-    options["Build Date"] = primary_features[0].get_text().split("\xa0\xa0")[1]
-    options["Color"] = primary_features[-1].get_text().split("\xa0\xa0")[1]
+    options["build_date"] = primary_features[0].get_text().split("\xa0\xa0")[1]
+    options["color"] = primary_features[-1].get_text().split("\xa0\xa0")[1]
 
     #now to the minor feature list
     #Vehicle Cover B == painted black roof
@@ -63,30 +99,32 @@ def get_car_details(vin_number, cookies, proxies):
     for feature in minor_features:
         feature = feature.get_text()
         if "Vehicle Cover B" in feature:
-            options["Painted Black Roof"] = True
+            options["painted_roof"] = True
         if "Accent Stripe-" in feature:
-            options["Over the Top Racing Stripe"] = feature.split("-")[1]
+            options["stripe"] = feature.split("-")[1]
         if "With Drivers Heated" in feature:
-            options["Convenience Package"] = True
+            options["convenience"] = True
         if "With Navigation" in feature:
             options["has nav"] = True
 
+
     #check for electronic or convienence Package
     if "has nav" not in options:
-        options["Electronics Package"] = False
-        options["Convenience Package"] = False
-    if "has nav" in options and "Convenience Package" not in options:
+        options["electronics"] = False
+        options["convenience"] = False
+    if "has nav" in options and "convenience" not in options:
         options.pop("has nav", None)
-        options["Electronics Package"] = True
-        options["Convenience Package"] = False
-    if "Convenience Package" in options:
-        options.pop("has nav", None)
-        options["Electronics Package"] = False
+        options["electronics"] = True
+        options["convenience"] = False
+    if "convenience" in options:
+        if options["convenience"]:
+            options.pop("has nav", None)
+            options["electronics"] = False
     #add other options as False
-    if "Painted Black Roof" not in options:
-        options["Painted Black Roof"] = False
-    if "Over the Top Racing Stripe" not in options:
-        options["Over the Top Racing Stripe"] = False
+    if "painted_roof" not in options:
+        options["painted_roof"] = False
+    if "stripe" not in options:
+        options["stripe"] = False
     # print(options)
     return options
 
