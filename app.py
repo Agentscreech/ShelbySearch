@@ -127,7 +127,6 @@ def get_car_build_options(vin):
                     options["stripe"] = db_result.stripe
                 options["electronics"] = db_result.electronics
                 options["convenience"] = db_result.convenience
-                options["painted_roof"] = db_result.painted_roof
             print(options)
 
             return options

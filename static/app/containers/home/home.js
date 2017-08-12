@@ -12,7 +12,7 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
     homeComp.years = ["2016", "2017", "2018"];
     homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
     homeComp.stripes = ["None","Black W/ White", "White W/ Black", "Blue W/ Black"]
-    homeComp.options = ["Painted Roof", "Electronics Package", "Convenience Package"]
+    homeComp.options = ["Electronics Package", "Convenience Package"]
     homeComp.zipcode = "";
     homeComp.radius = "";
     homeComp.minYear = "";
