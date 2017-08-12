@@ -1,9 +1,9 @@
 <div class="container">
-    <h1>Welcome to Shelby Search.  Scrape AutoTrader for Shelby GT350 and GT350R listings</h1>
+    <h1 class="text-center">Shelby Search</h1>
 
     <form ng-submit="homeComp.searchCars()" class="well">
         <div class="row">
-            <div class="col-xs-6">
+            <div class="col-xs-4">
                 <label for="zipcode">Zip Code
                 <input type="number" class="form-control" required ng-model="homeComp.zipcode">
             </label>
@@ -16,14 +16,26 @@
                 <label for="maxYear">Maximum Year
                 <select ng-model="homeComp.maxYear" ng-options="x for x in homeComp.years" class="form-control" required></select>
             </label>
-            <p>Trim level</p>
+            <!-- <p>Trim level</p>
                 <label class="form-control" ng-repeat="trim in homeComp.trims">
                 <input  type="checkbox" ng-model="homeComp.trim[trim]" /> {{trim}}
+            </label> -->
+            <p>Options</p>
+            <label class="form-control" ng-repeat="option in homeComp.options">
+                <input type="checkbox" ng-model="homeComp.option[option]" > <span>{{option}}</span>
             </label>
             </div>
-            <div class="col-xs-6">
+            <div class="col-xs-4">
+                <p>Colors</p>
                 <label class="form-control" ng-repeat="color in homeComp.colors">
-                <input  type="checkbox" ng-model="homeComp.color[color]" /> {{color}}
+                <input  type="checkbox" ng-model="homeComp.color[color]" > <span>{{color}}</span>
+            </label>
+
+            </div>
+            <div class="col-xs-4">
+                <p>Stripes</p>
+                <label class="form-control" ng-repeat="stripe in homeComp.stripes">
+                <input  type="checkbox" ng-model="homeComp.stripe[stripe]" > <span>{{stripe}}</span>
             </label>
 
             </div>
@@ -45,11 +57,17 @@
                     <a class="btn btn-primary pull-right" href="{{car.url}}" target="_blank">View Listing</a>
                     <p>{{car.dist}}</p>
                     <p>Color: {{car.color}}</p>
+                    <p ng-if="car.stripe">{{car.stripe}}</p>
+                    <p ng-if="car.painted_roof">Painted Roof</p>
+                    <p ng-if="car.convenience"> Convenience Package</p>
+                    <p ng-if="car.electronics"> Electronics Package</p>
                     <p>Price: {{car.price}}</p>
                     <p>Dealer: {{car.dealer}}</p>
                     <p>address: {{car.address}}</p>
                     <p>phone: {{car.phone}}</p>
                     <p>vin: {{car.vin}}</p>
+                    <p>Build Date: {{car.build_date}}</p>
+
                 </div>
                 <div class="row">
                     <div class="col-xs-12 text-right">

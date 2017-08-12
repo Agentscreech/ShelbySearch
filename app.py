@@ -94,8 +94,11 @@ def search_autotrader():
     print("getting build options")
     for car in autotrader_cars:
         build_options = get_car_build_options(car["vin"])
-        for option in build_options:
-            car[option] = build_options[option]
+        if build_options:
+            for option in build_options:
+                car[option] = build_options[option]
+    #now filter based on options in params
+
     return jsonify(autotrader_cars),200
 
 
@@ -103,27 +106,35 @@ def search_autotrader():
 
 def get_car_build_options(vin):
     '''query db and set results to object to return'''
-    db_result = db.session.query(Result).filter_by(vin=vin).first()
-    if db_result is None:
-        print("car was not in DB, fetching data for vin", vin)
-        options = check_vin(vin)
-        if options["stripe"] == "false":
-            options["stripe"] = False
-    else:
-        # print(db_result.color, db_result.build_date,db_result.stripe,db_result.electronics,db_result.convenience,db_result.painted_roof)
-        options = {}
-        options["color"] = db_result.color
-        options["build_date"] = db_result.build_date
-        if db_result.stripe == "false":
-            options["stripe"] = False
-        else:
-            options["stripe"] = db_result.stripe
-        options["electronics"] = db_result.electronics
-        options["convenience"] = db_result.convenience
-        options["painted_roof"] = db_result.painted_roof
-    print(options)
+    if validate_vin(vin):
+        print("vin is syntaxically correct")
+        if "P8JZ" in vin:
+            print("vin is for a GT350")
+            db_result = db.session.query(Result).filter_by(vin=vin).first()
+            if db_result is None:
+                print("car was not in DB, fetching data for vin", vin)
+                options = check_vin(vin)
+                if options["stripe"] == "false":
+                    options["stripe"] = False
+            else:
+                # print(db_result.color, db_result.build_date,db_result.stripe,db_result.electronics,db_result.convenience,db_result.painted_roof)
+                options = {}
+                options["color"] = db_result.color
+                options["build_date"] = db_result.build_date
+                if db_result.stripe == "false":
+                    options["stripe"] = False
+                else:
+                    options["stripe"] = db_result.stripe
+                options["electronics"] = db_result.electronics
+                options["convenience"] = db_result.convenience
+                options["painted_roof"] = db_result.painted_roof
+            print(options)
 
-    return options
+            return options
+        else:
+            return False
+    else:
+        return False
 
 
 
@@ -132,10 +143,10 @@ def format_params(options):
     formats it so that we can use it to construct the proper url'''
     options["color"] = []
     options["trim"] = []
-    #change each color to array index
+    #change each color (2nd word) to array index
     for color in options["colors"]:
         if options["colors"][color]:
-            options["color"].append(str(color))
+            options["color"].append(str(color.split(" ")[1]))
 
     if len(options["color"]) is not 0:
         if len(options["color"]) > 1:
@@ -151,17 +162,17 @@ def format_params(options):
         options["color"] = ""
     options.pop("colors", None)
     # change trims to array then replace it with formatted starting
-    for trim in options["trims"]:
-        options["trim"].append(trim)
-
-    temp = "MUST%7C"
-    if len(options["trim"]) > 1:
-        temp += "%20".join(options["trim"][0].split(" "))
-        temp += "%2CMUST%7C"
-        temp += "%20".join(options["trim"][1].split(" "))
-    else:
-        temp += "%20".join(options["trim"][0].split(" "))
-    options["trim"] = temp
+    # for trim in options["trims"]:
+    #     options["trim"].append(trim)
+    #
+    # temp = "MUST%7C"
+    # if len(options["trim"]) > 1:
+    #     temp += "%20".join(options["trim"][0].split(" "))
+    #     temp += "%2CMUST%7C"
+    #     temp += "%20".join(options["trim"][1].split(" "))
+    # else:
+    #     temp += "%20".join(options["trim"][0].split(" "))
+    options["trim"] = "MUST%7CShelby%20GT350R%2CMUST%7CShelby%20GT350"
     options.pop("trims", None)
     options["radius"] = str(options["radius"])
     options["zipcode"] = str(options["zipcode"])
@@ -208,6 +219,52 @@ def check_vin(vin):
 
     return details
 
+def validate_vin(field):
+    """
+    Validate a VIN against the 9th position checksum
+    See: http://en.wikipedia.org/wiki/Vehicle_Identification_Number#Check_digit_calculation
+    Test VINs:
+        1M8GDM9AXKP042788
+        11111111111111111
+    """
+    POSITIONAL_WEIGHTS = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2]
+    ILLEGAL_ALL = ['I', 'O', 'Q']
+    ILLEGAL_TENTH = ['U','Z','0']
+    LETTER_KEY = dict(
+        A=1,B=2,C=3,D=4,E=5,F=6,G=7,H=8,
+        J=1,K=2,L=3,M=4,N=5,    P=7,    R=9,
+            S=2,T=3,U=4,V=5,W=6,X=7,Y=8,Z=9,
+    )
+
+    if len(field) == 17:
+        vin = field.upper()
+
+        for char in ILLEGAL_ALL:
+            if char in vin:
+                raise ValidationError('Field cannot contain "I", "O", or "Q".')
+
+        if vin[9] in ILLEGAL_TENTH:
+            raise ValidationError('Field cannot contain "U", "Z", or "0" in position 10.')
+
+        check_digit = vin[8]
+
+        pos=total=0
+        for char in vin:
+            value = int(LETTER_KEY[char]) if char in LETTER_KEY else int(char)
+            weight = POSITIONAL_WEIGHTS[pos]
+            total += (value * weight)
+            pos += 1
+
+        calc_check_digit = int(total) % 11
+
+        if calc_check_digit == 10:
+            calc_check_digit = 'X'
+
+        if str(check_digit) != str(calc_check_digit):
+            return False
+    else:
+        return False
+    return True
 
 if __name__ == "__main__":
     app.run()

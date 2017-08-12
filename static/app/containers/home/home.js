@@ -8,9 +8,11 @@ angular.module('App')
 function HomeCompCtrl($scope, $window, CarList, $sce) {
     var homeComp = this;
     homeComp.cars = "";
-    homeComp.colors = ["Black", "Blue", "Gray", "Red", "White", "Yellow"];
+    homeComp.colors = ["Shadow Black", "Grabber Blue", "Lightning Blue", "Magnetic Gray", "Race Red", "Oxford White", "Triple Yellow"];
     homeComp.years = ["2016", "2017", "2018"];
     homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
+    homeComp.stripes = ["None","Black W/ White", "White W/ Black", "Blue W/ Black"]
+    homeComp.options = ["Painted Roof", "Electronics Package", "Convenience Package"]
     homeComp.zipcode = "";
     homeComp.radius = "";
     homeComp.minYear = "";
@@ -50,16 +52,22 @@ function rankCars(cars) {
     // });
     //Add the distance @ $1/mile to the price then sort it.  That would weight the distance more since you'll have pay to travel to the location.
     var carsByPrice = cars.slice(0).sort(function(a, b) {
-        var arr1 = a.price.split("$"),
+            if (!a.price){
+                a.price = ""
+            }
+            if (!b.price){
+                b.price = ""
+            }
+            var arr1 = a.price.split("$"),
             arr2 = b.price.split("$");
-        var weight1 = a.dist.split(" "),
-            weight2 = b.dist.split(" ")
-        if (arr1 == "") {
-            arr1 = ["", "999,999"]
-        }
-        if (arr2 == "") {
-            arr2 = ["", "999,999"]
-        }
+            var weight1 = a.distance.split(" "),
+            weight2 = b.distance.split(" ")
+            if (arr1 == "") {
+                arr1 = ["", "999,999"]
+            }
+            if (arr2 == "") {
+                arr2 = ["", "999,999"]
+            }
         return parseInt(arr1[1].split(",").join("")) + parseInt(weight1[0]) > parseInt(arr2[1].split(",").join("")) + parseInt(weight2[0]) ? 1 : parseInt(arr1[1].split(",").join("")) + parseInt(weight1[0]) < parseInt(arr2[1].split(",").join("")) + parseInt(weight2[0]) ? -1 : 0;
 
     });
