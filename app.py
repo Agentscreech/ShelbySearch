@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import copy
 from flask import Flask, send_file, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from etis_scraper import *
@@ -9,7 +10,7 @@ app = Flask(__name__)
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
+# PROXIES = test_proxies(find_proxies())
 from models import Result, Invalid
 
 @app.route('/')
@@ -17,66 +18,13 @@ def index():
     return render_template("index.html")
 
 @app.route('/test')
-# def test():
-#     us_proxies = find_proxies()
-#     proxies = test_proxies(us_proxies[:75]))
-#     # proxies = [{'http': 'http://35.196.19.142:80'}, {'http': 'http://104.196.226.56:80'}, {'http': 'http://34.225.178.44:8080'}, {'http': 'http://64.77.242.74:3128'}, {'http': 'http://52.11.203.152:8083'}, {'http': 'http://52.24.78.66:80'}, {'http': 'http://198.110.57.6:8080'}, {'http': 'http://192.95.18.162:8080'}, {'http': 'http://47.91.229.46:8080'}, {'http': 'http://69.7.46.63:80'}, {'http': 'http://70.32.89.160:3128'}, {'http': 'http://47.74.134.234:80'}]
-#     # proxy = random.choice(proxies)
-#     for proxy in proxies:
-#         print("trying with proxy", proxy)
-#         good_proxy = proxy
-#         try:
-#             set_cookies = requests.get("http://www.etis.ford.com/", proxies=proxy, timeout=5)
-#             if set_cookies.status_code == 200:
-#                 break
-#         except requests.exceptions.RequestException as e:
-#             print(e)
-#         else:
-#             break
-#     print("status code when getting cookie", set_cookies.status_code)
-#     time_of_cookie = time.time()
-#     for entry in db.session.query(Result).filter(Result.convenience==False).all():
-#         now = time.time()
-#         test = int(entry.vin[-4:])
-#         print(test)
-#         if test < 5272:
-#             continue
-#         if entry.electronics:
-#             continue
-#         print("checking", entry.vin, entry.electronics)
-#         if now-time_of_cookie > 600:
-#             print("getting new cookie")
-#             for proxy in proxies:
-#                 good_proxy = proxy
-#                 try:
-#                     set_cookies = requests.get("http://www.etis.ford.com/", proxies=proxy, timeout=5)
-#                     if set_cookies.status_code == 200:
-#                         break
-#                 except requests.exceptions.RequestException as e:
-#                     print(e)
-#                 else:
-#                     break
-#             time_of_cookie = time.time()
-#         #randomize proxy before sending
-#         details = get_car_details(entry.vin, set_cookies.cookies, good_proxy)
-#         if details == "retry":
-#             print("getting details didn't work")
-#             # test()
-#         else:
-#             #add the car to the cars table
-#             if details["electronics"]:
-#                 print("updating car")
-#                 entry.electronics = True
-#                 db.session.commit()
-#
-#
-#
-#     return "test complete"
+
 
 @app.route('/api/search', methods=["POST"])
 def search_autotrader():
     raw_params = request.get_json()
     print(raw_params)
+    filtering_params = copy.deepcopy(raw_params)
     formatted_params = format_params(raw_params)
     #send these options to a function that scrapes autotrader with these params
     urls, distances = find_listings(formatted_params)
@@ -92,14 +40,57 @@ def search_autotrader():
     #now that we have the vin for each car, check the DB for options
     #if it's not in the DB, serach and add it
     print("getting build options")
+    filtered_cars = []
     for car in autotrader_cars:
         build_options = get_car_build_options(car["vin"])
         if build_options:
             for option in build_options:
                 car[option] = build_options[option]
-    #now filter based on options in params
+            if match_filters(car, filtering_params):
+                print("car matched all params")
+                filtered_cars.append(car)
+        #now filter based on options in params
+    return jsonify(filtered_cars),200
 
-    return jsonify(autotrader_cars),200
+def match_filters(car, params):
+    print("matching params", params)
+
+    print(car)
+    matched = {}
+    #filter for color
+    if params["colors"]:
+        matched["color"] = False
+        for color in params["colors"]:
+            if car["color"].split(" ")[0] in color:
+                matched['color'] = True
+    #filter for stripes
+    if params["stripe"]:
+        matched["stripe"] = False
+        for stripe in params["stripe"]:
+            if car["stripe"]:
+                if car["stripe"].split(' ')[0] == stripe.split(' ')[0]:
+                    matched["stripe"] = True
+            else:
+                if stripe == "None":
+                    matched["stripe"] = True
+
+    #filter for Electronics or Convenience Package
+    if params["options"]:
+        matched["options"] = False
+        for option in params["options"]:
+            if "electronics" in option.lower() and car["electronics"]:
+                matched["options"] = True
+            elif "convenience" in option.lower() and car["convenience"]:
+                matched["options"] = True
+
+    #remove the car if any value in matched is False
+    for key in matched:
+        print(key, matched[key])
+        if not matched[key]:
+            return False
+    return True
+
+
 
 
 # @app.route("/add_<year>")
@@ -107,15 +98,15 @@ def search_autotrader():
 def get_car_build_options(vin):
     '''query db and set results to object to return'''
     if validate_vin(vin):
-        print("vin is syntaxically correct")
         if "P8JZ" in vin:
             print("vin is for a GT350")
             db_result = db.session.query(Result).filter_by(vin=vin).first()
             if db_result is None:
                 print("car was not in DB, fetching data for vin", vin)
                 options = check_vin(vin)
-                if options["stripe"] == "false":
-                    options["stripe"] = False
+                if options:
+                    if options["stripe"] == "false":
+                        options["stripe"] = False
             else:
                 # print(db_result.color, db_result.build_date,db_result.stripe,db_result.electronics,db_result.convenience,db_result.painted_roof)
                 options = {}
@@ -131,6 +122,7 @@ def get_car_build_options(vin):
 
             return options
         else:
+            print("vin is not a GT350")
             return False
     else:
         return False
@@ -189,28 +181,31 @@ def get_or_create_car(vin, year, car):
 
 def check_vin(vin):
     '''check a single vin because it wasn't in the db'''
-    proxy = {'http':'http://35.189.9.152:80'}
-    set_cookies = requests.get("http://www.etis.ford.com/vehicleSelection.do", proxies=proxy)
-    # print(set_cookies.headers)
-    details = get_car_details(vin, set_cookies.cookies, proxy)
+    # for proxy in PROXIES:
+    #     print("trying proxy", proxy)
+    set_cookies = requests.get("http://www.etis.ford.com/vehicleSelection.do")
+    # print('status code for cookies', set_cookies.status_code)
+    if set_cookies.status_code == 200:
+        details = get_car_details(vin, set_cookies.cookies)
+        if details == "Server Error":
+            return False
+    if details == "retry":
+        print("Service Unavailable while getting details, retrying")
     if vin[9] == "G":
         year = 2016
     elif vin[9] == "H":
         year = 2017
     elif vin[9] == "J":
         year = 2018
-    if details == "retry":
-        print("Service Unavailable while getting details, retrying")
-        check_vin(vin)
-    elif details is False:
-        #add the vin to the invalid table
-        print("invalid, adding to invalid table")
-        invalid_vin = Invalid(vin)
-        try:
-            db.session.add(invalid_vin)
-            db.session.commit()
-        except:
-            print("Unable to add item to database.")
+    # elif details is False:
+    #     #add the vin to the invalid table
+    #     print("invalid, adding to invalid table")
+    #     invalid_vin = Invalid(vin)
+    #     try:
+    #         db.session.add(invalid_vin)
+    #         db.session.commit()
+    #     except:
+    #         print("Unable to add item to database.")
     else:
         #add the car to the cars table
         print("adding car to cars table")

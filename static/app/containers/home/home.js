@@ -10,15 +10,17 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
     homeComp.cars = "";
     homeComp.colors = ["Shadow Black", "Grabber Blue", "Lightning Blue", "Magnetic Gray", "Race Red", "Oxford White", "Triple Yellow"];
     homeComp.years = ["2016", "2017", "2018"];
-    homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
+    // homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
     homeComp.stripes = ["None","Black W/ White", "White W/ Black", "Blue W/ Black"]
     homeComp.options = ["Electronics Package", "Convenience Package"]
     homeComp.zipcode = "";
     homeComp.radius = "";
     homeComp.minYear = "";
     homeComp.maxYear = "";
-    homeComp.trim = {};
+    // homeComp.trim = {};
     homeComp.color = {};
+    homeComp.stripe = {};
+    homeComp.option = {};
     homeComp.processing = false;
     // $scope.$watch('homeComp.cars',function(newVal, oldVal){
     //     console.log("homeComp.cars changed.  It's ", newVal)
@@ -31,8 +33,10 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
             radius : homeComp.radius,
             minYear : homeComp.minYear,
             maxYear : homeComp.maxYear,
-            trims : homeComp.trim,
-            colors : homeComp.color
+            // trims : homeComp.trim,
+            colors : homeComp.color,
+            stripe : homeComp.stripe,
+            options : homeComp.option,
         }
         CarList.getCars(params).then(function(res) {
             //rank cars by price and distance

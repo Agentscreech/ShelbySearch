@@ -2,7 +2,7 @@ import requests
 
 from bs4 import BeautifulSoup
 
-
+#<strong data-qaid="cntnr-resultTotal" data-reactid="134">556</strong>
 
 def find_listings(params):
     '''grabs all the listing urls and distance for a given autotrader query'''
@@ -16,12 +16,19 @@ def find_listings(params):
     except requests.exceptions.RequestException as e:
         print(e)
     results_soup = BeautifulSoup(autotrader_results_html.content, "html.parser")
+    total_results = int(results_soup.find(attrs={"data-qaid": "cntnr-resultTotal"}).get_text())
+    print ("total results", total_results)
+    # while total_results > 100:
+    #
+    #     urls.append(find_next_page())
     for link in results_soup.find_all("a", attrs={"data-qaid": "lnk-lstgTtlf"}):
         urls.append(link.get('href').split("&")[0])
     for distance in results_soup.find_all(attrs={"data-qaid": "cntnr-dlrlstng-radius"}):
         distances.append(distance.get_text())
     return urls, distances
 
+def find_next_page(start):
+    pass
 
 def get_listing_details(sub_url, distance):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}

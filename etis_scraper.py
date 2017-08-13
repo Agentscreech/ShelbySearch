@@ -1,5 +1,6 @@
 import requests
 import re
+import time
 from bs4 import BeautifulSoup
 
 def find_proxies():
@@ -19,18 +20,22 @@ def find_proxies():
 def test_proxies(proxies):
     print("testing proxies")
     valid_proxies = []
+    response_times = []
     for proxy in proxies:
         try:
+            t0 = time.time()
             test_server = requests.get("http://www.etis.ford.com/vehicleSelection.do", proxies=proxy, timeout=5)
+            t1 = time.time()
         except requests.exceptions.RequestException as e:
-            pass
+            continue
         if test_server.status_code == 200:
+            response_times.append(t1-t0)
             valid_proxies.append(proxy)
             print(proxy, "was valid")
-    return valid_proxies
+    return [valid_proxies for (response_times,valid_proxies) in sorted(zip(response_times,valid_proxies))]
 
 
-def get_car_details(vin_number, cookies, proxies):
+def get_car_details(vin_number, cookies):
     '''this should grab the deatils from Fords ETIS site
     and then returns and object to query the DB with'''
 
@@ -65,19 +70,22 @@ def get_car_details(vin_number, cookies, proxies):
         'accept-encoding':"gzip, deflate",
         'content-length':""
     }
-    for i in range(10):
-        print("attempt", i, "of 10")
+    for i in range(2):
+        print("attempt", i+1, "of 3")
         try:
-            car_details_html = requests.post(url, headers=headers, data=querystring, cookies=cookies, proxies=proxies, timeout=30)
+            car_details_html = requests.post(url, headers=headers, data=querystring, cookies=cookies, timeout=30)
             print("post status code", car_details_html.status_code)
             car_details_soup = BeautifulSoup(car_details_html.content, "html.parser")
             status = car_details_soup.find("title").get_text().strip() # shoule be Vehical Summary
+            if car_details_html.status_code[0] == 5:
+                return "Server Error"
             if "Summary" in status:
                 #handle Unavailable and don't update the DB for it
                 # print(status)
                 break
         except:
             print("ETIS site query failed")
+            return "Server Error"
         # else:
         #     break
     #title should be Vehical Summary. If it's Vehical Lookup, it was invalid
