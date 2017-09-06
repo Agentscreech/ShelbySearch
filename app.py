@@ -18,7 +18,9 @@ def index():
     return render_template("index.html")
 
 @app.route('/test')
-
+def test():
+    check_vin("1FA6P8JZ8H5520775")
+    return "done"
 
 @app.route('/api/search', methods=["POST"])
 def search_autotrader():
@@ -42,7 +44,8 @@ def search_autotrader():
     print("getting build options")
     filtered_cars = []
     for car in autotrader_cars:
-        build_options = get_car_build_options(car["vin"])
+        if car["vin"] is not None:
+            build_options = get_car_build_options(car["vin"])
         if build_options:
             for option in build_options:
                 car[option] = build_options[option]
@@ -60,9 +63,15 @@ def match_filters(car, params):
     #filter for color
     if params["colors"]:
         matched["color"] = False
+        tripped = 0
         for color in params["colors"]:
-            if car["color"].split(" ")[0] in color:
-                matched['color'] = True
+            if color:
+                tripped = 1
+                if car["color"]:
+                    if car["color"].split(" ")[0] in color:
+                        matched['color'] = True
+        if tripped == 0:
+            matched['color'] = True
     #filter for stripes
     if params["stripe"]:
         matched["stripe"] = False
@@ -172,7 +181,7 @@ def format_params(options):
 
 def get_or_create_car(vin, year, car):
     '''checks to see if the car exists in the db, if not, add it'''
-    result = Result(vin, year, car["color"], car["build_date"], car["stripe"], car["electronics"], car["convenience"], car["painted_roof"])
+    result = Result(vin, year, car["color"], car["build_date"], car["stripe"], car["electronics"], car["convenience"])
     try:
         db.session.add(result)
         db.session.commit()
@@ -206,7 +215,7 @@ def check_vin(vin):
     #         db.session.commit()
     #     except:
     #         print("Unable to add item to database.")
-    else:
+    if details:
         #add the car to the cars table
         print("adding car to cars table")
         get_or_create_car(vin, year, details)

@@ -1,6 +1,7 @@
 import requests
 import re
 import time
+from datetime import datetime
 from bs4 import BeautifulSoup
 
 def find_proxies():
@@ -70,6 +71,7 @@ def get_car_details(vin_number, cookies):
         'accept-encoding':"gzip, deflate",
         'content-length':""
     }
+    print(url, headers, querystring, cookies)
     for i in range(2):
         print("attempt", i+1, "of 3")
         try:
@@ -77,24 +79,36 @@ def get_car_details(vin_number, cookies):
             print("post status code", car_details_html.status_code)
             car_details_soup = BeautifulSoup(car_details_html.content, "html.parser")
             status = car_details_soup.find("title").get_text().strip() # shoule be Vehical Summary
-            if car_details_html.status_code[0] == 5:
-                return "Server Error"
+            # if car_details_html.status_code[0] == 5:
+            #     return "Server Error"
             if "Summary" in status:
                 #handle Unavailable and don't update the DB for it
                 # print(status)
                 break
-        except:
+        except requests.exceptions.RequestException as e:
+            print(e)
             print("ETIS site query failed")
             return "Server Error"
         # else:
         #     break
     #title should be Vehical Summary. If it's Vehical Lookup, it was invalid
     print(status)
-    primary_features_section = car_details_soup.find(id="pfcSummary")
-    primary_features = primary_features_section.find_all(class_="summaryContent")
+    # primary_features_section = car_details_soup.find(id="pfcSummary")
+    primary_features_section = car_details_soup.find_all(class_="table__contents")[2]
+    # primary_col1 = primary_features_section.find_all(class_="summaryPrompt")
+    # primary_features = primary_features_section.find_all(class_="summaryContent")
     options = {}
-    options["build_date"] = primary_features[0].get_text().split("\xa0\xa0")[1]
-    options["color"] = primary_features[-1].get_text().split("\xa0\xa0")[1]
+    # for i, col in enumerate(primary_col1):
+    #     if col.get_text() == "Build Date:":
+    #         options["build_date"] = primary_features[i].get_text().split("\xa0\xa0")[1]
+    #     if col.get_text() == "Paint:":
+    #         options["color"] = primary_features[i].get_text().split("\xa0\xa0")[1]
+    for feature in primary_features_section:
+        if not feature.string:
+            if "Build" in feature.th.get_text():
+                options["build_date"] = datetime.strptime(feature.td.get_text(strip=True).replace("BST", ""),  "%a %b %d %H:%M:%S %Y").strftime("%d.%m.%y")
+            if "Paint" in feature.th.get_text():
+                options["color"] = feature.td.get_text()
 
     #now to the minor feature list
     #Vehicle Cover B == painted black roof
@@ -106,8 +120,8 @@ def get_car_details(vin_number, cookies):
     minor_features = minor_features_section.find_all("li")
     for feature in minor_features:
         feature = feature.get_text()
-        if "Vehicle Cover B" in feature:
-            options["painted_roof"] = True
+        # if "Vehicle Cover B" in feature:
+        #     options["painted_roof"] = True
         if "Accent Stripe-" in feature:
             options["stripe"] = feature.split("-")[1]
         if "With Drivers Heated" in feature:
@@ -129,11 +143,15 @@ def get_car_details(vin_number, cookies):
             options.pop("has nav", None)
             options["electronics"] = False
     #add other options as False
-    if "painted_roof" not in options:
-        options["painted_roof"] = False
+    # if "painted_roof" not in options:
+    #     options["painted_roof"] = False
     if "stripe" not in options:
         options["stripe"] = False
-    # print(options)
+    if "color" not in options:
+        options["color"] = False
+    if options["build_date"].split('.')[2] == "0002":
+        options["build_date"] = "PENDING"
+    print(options)
     return options
 
 

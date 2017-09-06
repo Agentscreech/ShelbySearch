@@ -1,3 +1,20 @@
 /*.pdf {
     height: 500px;
 }*/
+
+body {
+	font-family: 'Lato', sans-serif;
+	height: 100vh;
+	background: url(../img/shelby-logo.jpg) no-repeat center center fixed;
+	background-repeat: repeat;
+	margin: 0;
+	padding: 0;
+}
+
+h1 {
+	color: white;
+}
+
+.results img {
+	width: 100%;
+}

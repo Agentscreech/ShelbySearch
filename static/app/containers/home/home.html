@@ -1,86 +1,88 @@
 <div class="container">
-    <h1 class="text-center">Shelby Search</h1>
-
-    <form ng-submit="homeComp.searchCars()" class="well">
-        <div class="row">
-            <div class="col-xs-4">
-                <label for="zipcode">Zip Code
+  <h1 class="text-center">Shelby Search</h1>
+  
+  <form ng-submit="homeComp.searchCars()" class="well">
+    <div class="row">
+      <div class="col-xs-4">
+        <label for="zipcode">Zip Code
                 <input type="number" class="form-control" required ng-model="homeComp.zipcode">
             </label>
-                <label for="radius">Maximum Distance
+        <label for="radius">Maximum Distance
                 <input type="number" class="form-control" required ng-model="homeComp.radius">
             </label>
-                <label for="minYear">Minimum Year
+        <label for="minYear">Minimum Year
                 <select ng-model="homeComp.minYear" ng-options="x for x in homeComp.years" class= "form-control" required></select>
             </label>
-                <label for="maxYear">Maximum Year
+        <label for="maxYear">Maximum Year
                 <select ng-model="homeComp.maxYear" ng-options="x for x in homeComp.years" class="form-control" required></select>
             </label>
-            <!-- <p>Trim level</p>
+        <!-- <p>Trim level</p>
                 <label class="form-control" ng-repeat="trim in homeComp.trims">
                 <input  type="checkbox" ng-model="homeComp.trim[trim]" /> {{trim}}
             </label> -->
-            <p>Options</p>
-            <label class="form-control" ng-repeat="option in homeComp.options">
+        <p>Options</p>
+        <label class="form-control" ng-repeat="option in homeComp.options">
                 <input type="checkbox" ng-model="homeComp.option[option]" > <span>{{option}}</span>
             </label>
-            </div>
-            <div class="col-xs-4">
-                <p>Colors</p>
-                <label class="form-control" ng-repeat="color in homeComp.colors">
+      </div>
+      <div class="col-xs-4">
+        <p>Colors</p>
+        <label class="form-control" ng-repeat="color in homeComp.colors">
                 <input  type="checkbox" ng-model="homeComp.color[color]" > <span>{{color}}</span>
             </label>
 
-            </div>
-            <div class="col-xs-4">
-                <p>Stripes</p>
-                <label class="form-control" ng-repeat="stripe in homeComp.stripes">
+      </div>
+      <div class="col-xs-4">
+        <p>Stripes</p>
+        <label class="form-control" ng-repeat="stripe in homeComp.stripes">
                 <input  type="checkbox" ng-model="homeComp.stripe[stripe]" > <span>{{stripe}}</span>
             </label>
 
-            </div>
-            <button type="submit" class="btn btn-primary">Search</button>
-        </div>
-    </form>
-    <div ng-if="homeComp.processing" class="text-center">
-        <h1>Processing, please wait</h1>
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
     </div>
+  </form>
+  <div ng-if="homeComp.processing" class="text-center">
+    <h1>Processing, please wait</h1>
+  </div>
 
-    <div ng-repeat="car in homeComp.cars">
-        <div ng-if="car">
-            <div class="row well">
+  <div ng-repeat="car in homeComp.cars">
+    <div ng-if="car">
+      <div class="row">
+        <div class="well results">
 
-                <div class="col-xs-6" id="{{car.id}}">
-                    <img ng-src="{{car.pic}}">
-                </div>
-                <div class="col-xs-6">
-                    <a class="btn btn-primary pull-right" href="{{car.url}}" target="_blank">View Listing</a>
-                    <p>{{car.distance}}</p>
-                    <p>Color: {{car.color}}</p>
-                    <p ng-if="car.stripe">{{car.stripe}}</p>
-                    <p ng-if="car.painted_roof">Painted Roof</p>
-                    <p ng-if="car.convenience"> Convenience Package</p>
-                    <p ng-if="car.electronics"> Electronics Package</p>
-                    <p>Price: {{car.price}}</p>
-                    <p>Dealer: {{car.dealer}}</p>
-                    <p>address: {{car.address}}</p>
-                    <p>phone: {{car.phone}}</p>
-                    <p>vin: {{car.vin}}</p>
-                    <p>Build Date: {{car.build_date}}</p>
+          <div class="col-xs-6" id="{{car.id}}">
+            <img ng-src="{{car.pic}}">
+          </div>
+          <div class="col-xs-6">
+            <a class="btn btn-primary pull-right" href="{{car.url}}" target="_blank">View Listing</a>
+            <p>{{car.distance}}</p>
+            <p>Color: {{car.color}}</p>
+            <p ng-if="car.stripe">{{car.stripe}}</p>
+            <p ng-if="car.painted_roof">Painted Roof</p>
+            <p ng-if="car.convenience"> Convenience Package</p>
+            <p ng-if="car.electronics"> Electronics Package</p>
+            <p>Price: {{car.price}}</p>
+            <p>Dealer: {{car.dealer}}</p>
+            <p>address: {{car.address}}</p>
+            <p>phone: {{car.phone}}</p>
+            <p>vin: {{car.vin}}</p>
+            <p>Build Date: {{car.build_date}}</p>
 
-                </div>
-                <div class="row">
-                    <div class="col-xs-12 text-right">
-                        Show PDF: <input type="checkbox" ng-model="car.showPdf">
-                    </div>
-                    <div class="pdf" ng-show="car.showPdf">
-                        <iframe ng-src="{{car.pdf}}" align="middle" width="100%" height="700" frameborder="0">
+          </div>
+          <div class="row">
+            <div class="col-xs-12 text-right">
+              Show PDF: <input type="checkbox" ng-model="car.showPdf">
+            </div>
+            <div class="pdf" ng-show="car.showPdf">
+              <iframe ng-src="{{car.pdf}}" align="middle" width="100%" height="700" frameborder="0">
                             <p>Your browser does not support iframes.</p>
                         </iframe>
-                    </div>
-                </div>
-
             </div>
+          </div>
+
         </div>
+      </div>
     </div>
+  </div>
 </div>

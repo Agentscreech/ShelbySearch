@@ -26,7 +26,7 @@ class Result(db.Model):
     stripe = db.Column(db.String())
     electronics = db.Column(db.Boolean)
     convenience = db.Column(db.Boolean)
-    painted_roof = db.Column(db.Boolean)
+    # painted_roof = db.Column(db.Boolean)
     build_date = db.Column(db.String())
     # price = db.Column(db.String())
     # dealer = db.Column(db.String())
@@ -34,7 +34,7 @@ class Result(db.Model):
     # phone = db.Column(db.String())
     # url = db.Column(db.String())
 
-    def __init__(self, vin, year, color, build_date, stripe, electronics, convenience, painted_roof):
+    def __init__(self, vin, year, color, build_date, stripe, electronics, convenience):
         # self.url = url
         self.vin = vin
         self.year = year
@@ -43,7 +43,7 @@ class Result(db.Model):
         self.stripe = stripe
         self.electronics = electronics
         self.convenience = convenience
-        self.painted_roof = painted_roof
+        # self.painted_roof = painted_roof
         self.build_date = build_date
         # self.price = price
         # self.dealer = dealer

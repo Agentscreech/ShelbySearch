@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 #<strong data-qaid="cntnr-resultTotal" data-reactid="134">556</strong>
 
+
 def find_listings(params):
     '''grabs all the listing urls and distance for a given autotrader query'''
     url = "https://www.autotrader.com/cars-for-sale/Ford/Mustang/?zip=" + str(params["zipcode"]) + "&extColorsSimple=" + params["color"] + "&startYear=" + params["minYear"] + "&numRecords=100&endYear=" + params["maxYear"] + "&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=0&searchRadius=" + str(params["radius"]) + "&trimCodeList=" + params["trim"]
@@ -54,10 +55,15 @@ def get_listing_details(sub_url, distance):
         car["phone"] = phone.get_text()
     pic = listing_soup.find(class_="media-viewer")
     if pic:
-        car["pic"] = pic.find("img").get("src")
-    car["name"] = name.get_text()
+        pic_file = pic.find("img").get("src").split("/")
+        pic_file[4], pic_file[5] = "640", "480"
+        car["pic"] = "/".join(pic_file)
+        print(car["pic"])
+    if name:
+        car["name"] = name.get_text()
     car["url"] = url
-    car["vin"] = vin.get_text()
+    if vin:
+        car["vin"] = vin.get_text()
     car["dealer"] = dealer.get_text()
     car["distance"] = distance
     # print(car)
