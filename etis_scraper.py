@@ -71,7 +71,7 @@ def get_car_details(vin_number, cookies):
         'accept-encoding':"gzip, deflate",
         'content-length':""
     }
-    print(url, headers, querystring, cookies)
+    # print(url, headers, querystring, cookies)
     for i in range(2):
         print("attempt", i+1, "of 3")
         try:
@@ -92,7 +92,7 @@ def get_car_details(vin_number, cookies):
         # else:
         #     break
     #title should be Vehical Summary. If it's Vehical Lookup, it was invalid
-    print(status)
+    # print(status)
     # primary_features_section = car_details_soup.find(id="pfcSummary")
     primary_features_section = car_details_soup.find_all(class_="table__contents")[2]
     # primary_col1 = primary_features_section.find_all(class_="summaryPrompt")
@@ -157,7 +157,7 @@ def get_car_details(vin_number, cookies):
         options["color"] = False
     # if options["build_date"].split('.')[2] == "0002":
     #     options["build_date"] = "PENDING"
-    print(options)
+    # print(options)
     return options
 
 

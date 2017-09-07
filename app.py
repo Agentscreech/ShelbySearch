@@ -45,7 +45,8 @@ def search_autotrader():
             new_car = get_listing_details(urls[i], distances[i])
             autotrader_cars.append(new_car)
             #write the car to the DB
-            add_to_autotrader_db(new_car, distances[i])
+            if "P8JZ" in new_car["vin"]:
+                add_to_autotrader_db(new_car, distances[i])
         else:
             #TODO: should check to see if the url is still a valid listing
             new_car = {}
@@ -73,13 +74,13 @@ def search_autotrader():
             if match_filters(car, filtering_params):
                 print("car matched all params")
                 filtered_cars.append(car)
-        #now filter based on options in params
+    print("sending matching cars")
     return jsonify(filtered_cars),200
 
 def match_filters(car, params):
-    print("matching params", params)
+    # print("matching params", params)
 
-    print(car)
+    # print(car)
     matched = {}
     #filter for color
     if params["colors"]:
@@ -137,7 +138,7 @@ def get_car_build_options(vin):
     '''query db and set results to object to return'''
     if validate_vin(vin):
         if "P8JZ" in vin:
-            print("vin is for a GT350")
+            # print("vin is for a GT350")
             db_result = db.session.query(Result).filter_by(vin=vin).first()
             if db_result is None:
                 print("car was not in DB, fetching data for vin", vin)
@@ -156,14 +157,14 @@ def get_car_build_options(vin):
                     options["stripe"] = db_result.stripe
                 options["electronics"] = db_result.electronics
                 options["convenience"] = db_result.convenience
-            print(options)
+            # print(options)
 
             return options
         else:
             print("vin is not a GT350")
-            car_to_delete = db.session.query(Autotrader).filter_by(vin=vin).first()
-            db.session.delete(car_to_delete)
-            db.session.commit()
+            # car_to_delete = db.session.query(Autotrader).filter_by(vin=vin).first()
+            # db.session.delete(car_to_delete)
+            # db.session.commit()
             return False
     else:
         return False

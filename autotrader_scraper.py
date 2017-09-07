@@ -78,5 +78,5 @@ def get_listing_details(sub_url, distance):
         car["vin"] = None
     car["dealer"] = dealer.get_text()
     car["distance"] = distance
-    print(car)
+    # print(car)
     return car
