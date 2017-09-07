@@ -28,9 +28,11 @@ def search_autotrader():
     # print(raw_params)
     filtering_params = copy.deepcopy(raw_params)
     formatted_params = format_params(raw_params)
+    urls = []
+    distances = []
     #send these options to a function that scrapes autotrader with these params
     #TODO: Should check the DB and the scraper would just be constantly running
-    urls, distances = find_listings(formatted_params)
+    urls, distances = find_listings(formatted_params, urls, distances)
     print("found",len(urls),"cars")
     # new_car = get_listing_details(urls[0], distances[0])
     # now send each url and distance to listing details scrape_year
