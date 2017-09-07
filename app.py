@@ -64,7 +64,9 @@ def match_filters(car, params):
     if params["colors"]:
         matched["color"] = False
         tripped = 0
-        for color in params["colors"]:
+        for color in list(params["colors"]):
+            if params["colors"][color] is False:
+                continue
             if color:
                 tripped = 1
                 if car["color"]:
@@ -75,18 +77,26 @@ def match_filters(car, params):
     #filter for stripes
     if params["stripe"]:
         matched["stripe"] = False
-        for stripe in params["stripe"]:
+        tripped = 0
+        for stripe in list(params["stripe"]):
+            if params["stripe"][stripe] is False:
+                continue
             if car["stripe"]:
+                tripped = 1
                 if car["stripe"].split(' ')[0] == stripe.split(' ')[0]:
                     matched["stripe"] = True
             else:
                 if stripe == "None":
                     matched["stripe"] = True
+        if tripped == 0:
+            matched["stripe"] = True
 
     #filter for Electronics or Convenience Package
     if params["options"]:
         matched["options"] = False
-        for option in params["options"]:
+        for option in list(params["options"]):
+            if params["options"][option] is False:
+                continue
             if "electronics" in option.lower() and car["electronics"]:
                 matched["options"] = True
             elif "convenience" in option.lower() and car["convenience"]:
@@ -94,7 +104,7 @@ def match_filters(car, params):
 
     #remove the car if any value in matched is False
     for key in matched:
-        print(key, matched[key])
+        # print(key, matched[key])
         if not matched[key]:
             return False
     return True
