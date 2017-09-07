@@ -107,9 +107,12 @@ def get_car_details(vin_number, cookies):
         if not feature.string:
             if "Build" in feature.th.get_text():
                 temp = feature.td.get_text(strip=True).split(" ")
-                del temp[4]
-                date = " ".join(temp)
-                options["build_date"] = datetime.strptime(date,  "%a %b %d %H:%M:%S %Y").strftime("%d.%m.%y")
+                if temp[-1] == "2":
+                    options["build_date"] = "PENDING"
+                else:
+                    del temp[4]
+                    date = " ".join(temp)
+                    options["build_date"] = datetime.strptime(date,  "%a %b %d %H:%M:%S %Y").strftime("%d.%m.%y")
             if "Paint" in feature.th.get_text():
                 options["color"] = feature.td.get_text()
 
@@ -152,8 +155,8 @@ def get_car_details(vin_number, cookies):
         options["stripe"] = False
     if "color" not in options:
         options["color"] = False
-    if options["build_date"].split('.')[2] == "0002":
-        options["build_date"] = "PENDING"
+    # if options["build_date"].split('.')[2] == "0002":
+    #     options["build_date"] = "PENDING"
     print(options)
     return options
 
