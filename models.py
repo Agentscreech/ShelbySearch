@@ -15,6 +15,37 @@ class Invalid(db.Model):
         return '<id {}>'.format(self.id)
 
 
+class Autotrader(db.Model):
+    __tablename__ = 'search_results'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String())
+    url = db.Column(db.String())
+    vin = db.Column(db.String())
+    dealer = db.Column(db.String())
+    distance = db.Column(db.String())
+    listing = db.Column(db.String())
+    address = db.Column(db.String())
+    phone = db.Column(db.String())
+    price = db.Column(db.String())
+    pic = db.Column(db.String())
+
+    def __init__(self, pic, price, name, url, vin, dealer, address, phone, listing, distance):
+        self.pic = pic
+        self.price = price
+        self.dealer = dealer
+        self.address = address
+        self.phone = phone
+        self.name = name
+        self.url = url
+        self.vin = vin
+        self.phone = phone
+        self.listing = listing
+        self.distance = distance
+
+    def __repr__(self):
+        return '<id {}>'.format(self.id)
+
 class Result(db.Model):
     __tablename__ = 'cars'
 
@@ -28,11 +59,6 @@ class Result(db.Model):
     convenience = db.Column(db.Boolean)
     # painted_roof = db.Column(db.Boolean)
     build_date = db.Column(db.String())
-    # price = db.Column(db.String())
-    # dealer = db.Column(db.String())
-    # address = db.Column(db.String())
-    # phone = db.Column(db.String())
-    # url = db.Column(db.String())
 
     def __init__(self, vin, year, color, build_date, stripe, electronics, convenience):
         # self.url = url

@@ -45,26 +45,38 @@ def get_listing_details(sub_url, distance):
     price = listing_soup.find(attrs={"data-qaid": "cntnr-pricing-cmp-outer"})
     if price:
         car["price"] = price.get_text()
+    else:
+        car["price"] = None
     vin = listing_soup.find(attrs={"data-qaid": "tbl-value-VIN"})
     dealer = listing_soup.find(attrs={"data-qaid": "dealer_name"})
     address = listing_soup.find(attrs={"itemprop": "address"})
     if address:
         car["address"] = address.get_text()
+    else:
+        car["address"] = None
     phone = listing_soup.find(attrs={"data-qaid": "dlr_phone"})
     if phone:
         car["phone"] = phone.get_text()
+    else:
+        car["phone"] = None
     pic = listing_soup.find(class_="media-viewer")
     if pic:
         pic_file = pic.find("img").get("src").split("/")
         pic_file[4], pic_file[5] = "640", "480"
         car["pic"] = "/".join(pic_file)
-        print(car["pic"])
+    else:
+        car["pic"] = None
     if name:
         car["name"] = name.get_text()
+    else:
+        car["name"] = "Ford Shelby GT350"
     car["url"] = url
+    car["listing"] = url.split("=")[1]
     if vin:
         car["vin"] = vin.get_text()
+    else:
+        car["vin"] = None
     car["dealer"] = dealer.get_text()
     car["distance"] = distance
-    # print(car)
+    print(car)
     return car

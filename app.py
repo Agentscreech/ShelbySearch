@@ -11,7 +11,7 @@ app.config.from_object(os.environ["APP_SETTINGS"])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # PROXIES = test_proxies(find_proxies())
-from models import Result, Invalid
+from models import Result, Invalid, Autotrader
 
 @app.route('/')
 def index():
@@ -25,20 +25,41 @@ def test():
 @app.route('/api/search', methods=["POST"])
 def search_autotrader():
     raw_params = request.get_json()
-    print(raw_params)
+    # print(raw_params)
     filtering_params = copy.deepcopy(raw_params)
     formatted_params = format_params(raw_params)
     #send these options to a function that scrapes autotrader with these params
+    #TODO: Should check the DB and the scraper would just be constantly running
     urls, distances = find_listings(formatted_params)
     print("found",len(urls),"cars")
     # new_car = get_listing_details(urls[0], distances[0])
     # now send each url and distance to listing details scrape_year
     autotrader_cars = []
-    for i, _ in enumerate(urls):
-        print("scraping car", i+1)
-        #maybe send this to the redis worker?
-        new_car = get_listing_details(urls[i], distances[i])
-        autotrader_cars.append(new_car)
+    for i, url in enumerate(urls):
+        #search localdb for the car, if not there, then scrape it
+        # print(url.split("=")[1])
+        db_result = db.session.query(Autotrader).filter_by(listing=url.split("=")[1]).first()
+        if db_result is None:
+            print("Car not seen before, scraping car", i+1)
+            #maybe send this to the redis worker?
+            new_car = get_listing_details(urls[i], distances[i])
+            autotrader_cars.append(new_car)
+            #write the car to the DB
+            add_to_autotrader_db(new_car, distances[i])
+        else:
+            #TODO: should check to see if the url is still a valid listing
+            new_car = {}
+            new_car["name"] = db_result.name
+            new_car["url"] = db_result.url
+            new_car["vin"] = db_result.vin
+            new_car["dealer"] = db_result.dealer
+            new_car["distance"] = db_result.distance
+            new_car["address"] = db_result.address
+            new_car["phone"] = db_result.phone
+            new_car["price"] = db_result.price
+            new_car["pic"] = db_result.pic
+            autotrader_cars.append(new_car)
+
     #now that we have the vin for each car, check the DB for options
     #if it's not in the DB, serach and add it
     print("getting build options")
@@ -110,8 +131,6 @@ def match_filters(car, params):
     return True
 
 
-
-
 # @app.route("/add_<year>")
 
 def get_car_build_options(vin):
@@ -142,11 +161,21 @@ def get_car_build_options(vin):
             return options
         else:
             print("vin is not a GT350")
+            car_to_delete = db.session.query(Autotrader).filter_by(vin=vin).first()
+            db.session.delete(car_to_delete)
+            db.session.commit()
             return False
     else:
         return False
 
-
+def add_to_autotrader_db(car, distance):
+    #def __init__(self, price, name, url, vin, dealer, address, phone, listing):
+    result = Autotrader(car['pic'], car["price"], car["name"], car["url"], car["vin"], car["dealer"], car["address"], car["phone"], car["listing"], distance)
+    try:
+        db.session.add(result)
+        db.session.commit()
+    except:
+        print("Unable to add item to database.")
 
 def format_params(options):
     '''takes the raw input from the request as json and then

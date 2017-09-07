@@ -106,7 +106,10 @@ def get_car_details(vin_number, cookies):
     for feature in primary_features_section:
         if not feature.string:
             if "Build" in feature.th.get_text():
-                options["build_date"] = datetime.strptime(feature.td.get_text(strip=True).replace("BST", ""),  "%a %b %d %H:%M:%S %Y").strftime("%d.%m.%y")
+                temp = feature.td.get_text(strip=True).split(" ")
+                del temp[4]
+                date = " ".join(temp)
+                options["build_date"] = datetime.strptime(date,  "%a %b %d %H:%M:%S %Y").strftime("%d.%m.%y")
             if "Paint" in feature.th.get_text():
                 options["color"] = feature.td.get_text()
 
