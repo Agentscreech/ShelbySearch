@@ -1,6 +1,6 @@
 <div class="container">
   <h1 class="text-center">Shelby Search</h1>
-  
+
   <form ng-submit="homeComp.searchCars()" class="well">
     <div class="row">
       <div class="col-xs-4">
@@ -56,7 +56,7 @@
           </div>
           <div class="col-xs-6">
             <a class="btn btn-primary pull-right" href="{{car.url}}" target="_blank">View Listing</a>
-            <p>{{car.distance}}</p>
+            <p>{{car.distance}} Miles Away</p>
             <p>Color: {{car.color}}</p>
             <p ng-if="car.stripe">{{car.stripe}}</p>
             <p ng-if="car.painted_roof">Painted Roof</p>

@@ -23,14 +23,14 @@ class Autotrader(db.Model):
     url = db.Column(db.String())
     vin = db.Column(db.String())
     dealer = db.Column(db.String())
-    distance = db.Column(db.String())
+    zipcode = db.Column(db.String())
     listing = db.Column(db.String())
     address = db.Column(db.String())
     phone = db.Column(db.String())
     price = db.Column(db.String())
     pic = db.Column(db.String())
 
-    def __init__(self, pic, price, name, url, vin, dealer, address, phone, listing, distance):
+    def __init__(self, pic, price, name, url, vin, dealer, address, phone, listing, zipcode):
         self.pic = pic
         self.price = price
         self.dealer = dealer
@@ -41,7 +41,7 @@ class Autotrader(db.Model):
         self.vin = vin
         self.phone = phone
         self.listing = listing
-        self.distance = distance
+        self.zipcode = zipcode
 
     def __repr__(self):
         return '<id {}>'.format(self.id)

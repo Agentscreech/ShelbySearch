@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 #<strong data-qaid="cntnr-resultTotal" data-reactid="134">556</strong>
 
 
-def find_listings(params, urls, distances, firstRecord = 0, results_left = 0):
+def find_listings(params, urls, firstRecord = 0, results_left = 0):
     '''grabs all the listing urls and distance for a given autotrader query'''
     url = "https://www.autotrader.com/cars-for-sale/Ford/Mustang/?zip=" + str(params["zipcode"]) + "&extColorsSimple=" + params["color"] + "&startYear=" + params["minYear"] + "&numRecords=100&endYear=" + params["maxYear"] + "&modelCodeList=MUST&makeCodeList=FORD&sortBy=distanceASC&firstRecord=" + str(firstRecord) + "&searchRadius=" + str(params["radius"]) + "&trimCodeList=" + params["trim"]
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}
@@ -15,24 +15,28 @@ def find_listings(params, urls, distances, firstRecord = 0, results_left = 0):
     except requests.exceptions.RequestException as e:
         print(e)
     results_soup = BeautifulSoup(autotrader_results_html.content, "html.parser")
-    total_results = int(results_soup.find(attrs={"data-qaid": "cntnr-resultTotal"}).get_text())
-    urls, distances = find_links(results_soup, urls, distances)
+    total_results = results_soup.find(attrs={"data-qaid": "cntnr-resultTotal"}).get_text()
+    if "," in total_results:
+        total_results = int(total_results.replace(',',""))
+    urls = find_links(results_soup, urls)
     if total_results > 100 and total_results > results_left:
         results_left += 100
         print(results_left)
         firstRecord += 100
-        find_listings(params, urls, distances, firstRecord, results_left)
-    return urls, distances
+        find_listings(params, urls, firstRecord, results_left)
+    return urls
 
-def find_links(soup, urls, distances):
+def find_links(soup, urls):
     for link in soup.find_all("a", attrs={"data-qaid": "lnk-lstgTtlf"}):
         urls.append(link.get('href').split("&")[0])
-    for distance in soup.find_all(attrs={"data-qaid": "cntnr-dlrlstng-radius"}):
-        distances.append(distance.get_text())
+    # for distance in soup.find_all(attrs={"data-qaid": "cntnr-dlrlstng-radius"}):
+    #     distances.append(distance.get_text())
 
-    return urls, distances
+    return urls
+    # return urls, distances
 
-def get_listing_details(sub_url, distance):
+
+def get_listing_details(sub_url):
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}
     url = "https://www.autotrader.com" + sub_url
     # print("trying", url)
@@ -53,8 +57,15 @@ def get_listing_details(sub_url, distance):
     address = listing_soup.find(attrs={"itemprop": "address"})
     if address:
         car["address"] = address.get_text()
+        car["zipcode"] = address.get_text().split(" ")[-1]
     else:
-        car["address"] = None
+        try:
+            address = listing_soup.find(attrs={"data-qaid":"no_map_address"})
+            car["address"] = address.get_text().strip()
+            car["zipcode"] = address.get_text().strip().split(" ")[-1]
+        except:
+            print("couldn't find address")
+            car["address"] = None
     phone = listing_soup.find(attrs={"data-qaid": "dlr_phone"})
     if phone:
         car["phone"] = phone.get_text()
@@ -78,6 +89,5 @@ def get_listing_details(sub_url, distance):
     else:
         car["vin"] = None
     car["dealer"] = dealer.get_text()
-    car["distance"] = distance
     # print(car)
     return car

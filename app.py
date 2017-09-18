@@ -2,6 +2,8 @@ import os
 import time
 import random
 import copy
+import requests
+from sqlalchemy import or_
 from flask import Flask, send_file, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from etis_scraper import *
@@ -23,16 +25,95 @@ def test():
     return "done"
 
 @app.route('/api/search', methods=["POST"])
+def search_cars():
+    #take params and make it into a valid DB query.
+    raw_params = request.get_json()
+    #{'zipcode': 98036, 'radius': 500, 'minYear': '2017', 'maxYear': '2017', 'colors': {'Lightning Blue': True, 'Grabber Blue': True}, 'stripe': {'Black W/ White': True, 'None': True}, 'options': {}}
+    # make a zipcode api req to get the valid zips in radius of input zips
+    print(raw_params)
+    formatted_params = db_query_format(raw_params)
+
+    valid_zips = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/radius.json/'+str(raw_params["zipcode"])+'/'+str(raw_params["radius"])+"/mile?minimal")
+    zips = valid_zips.json()["zip_codes"]
+    # select * from cars inner join search_results on cars.vin = search_results.vin where params
+    #DBSession().query(MyTable).filter(or_(*[MyTable.my_column.like(name) for name in foo]))
+
+    db_result = db.session.query(Result,Autotrader).join(Autotrader, Result.vin == Autotrader.vin).\
+        filter(Autotrader.zipcode.in_(zips)).\
+        filter(Result.year >= raw_params['minYear']).\
+        filter(Result.year <= raw_params['maxYear'])
+    for filter_ in formatted_params:
+        db_result.filter(or_(*[Result.color.like(name) for name in formatted_params[filter_]]))
+    filtered_result = db_result.all()
+    returned_zips = []
+    for result in filtered_result:
+        if result.Autotrader.zipcode not in returned_zips:
+            returned_zips.append(result.Autotrader.zipcode)
+    distance_query = ",".join(item for item in returned_zips)
+    distances = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/match-close.json/'+distance_query+'/'+str(raw_params['radius'])+'/mile')
+    cars_matched = []
+    valid_distances = {}
+    valid_distances[str(raw_params["zipcode"])] = "0"
+    for distance in distances.json():
+        if distance["zip_code1"] == str(raw_params["zipcode"]):
+            valid_distances[distance["zip_code2"]] = distance["distance"]
+        if distance["zip_code2"] == str(raw_params["zipcode"]):
+            valid_distances[distance["zip_code1"]] = distance["distance"]
+
+    for car in filtered_result:
+        new_car = {}
+        new_car["name"] = car.Autotrader.name
+        new_car["url"] = car.Autotrader.url
+        new_car["vin"] = car.Autotrader.vin
+        new_car["dealer"] = car.Autotrader.dealer
+        new_car["zipcode"] = car.Autotrader.zipcode
+        new_car["address"] = car.Autotrader.address
+        new_car["phone"] = car.Autotrader.phone
+        new_car["price"] = car.Autotrader.price
+        new_car["pic"] = car.Autotrader.pic
+        new_car["year"] = car.Result.year
+        new_car["color"] = car.Result.color
+        new_car["stripe"] = car.Result.stripe
+        new_car["electronics"] = car.Result.electronics
+        new_car["convenience"] = car.Result.convenience
+        new_car["build_date"] = car.Result.build_date
+        new_car["distance"] = int(valid_distances[car.Autotrader.zipcode])
+        cars_matched.append(new_car)
+    return jsonify(cars_matched), 200
+
+
+def db_query_format(params):
+    formatted = {}
+    for param in params:
+        if param == "colors":
+            formatted["colors"] = []
+            for color in params[param]:
+                formatted["colors"].append(color)
+        if param == "stripe":
+            formatted["stripe"] = []
+            for stripe in params[param]:
+                formatted["stripe"].append(stripe)
+        if param == "options":
+            formatted["options"] = []
+            for option in params[param]:
+                formatted["options"].append(option)
+    for item in list(formatted):
+        if not formatted[item]:
+            formatted.pop(item, None)
+
+
+    return formatted
+
 def search_autotrader():
     raw_params = request.get_json()
     # print(raw_params)
     filtering_params = copy.deepcopy(raw_params)
     formatted_params = format_params(raw_params)
     urls = []
-    distances = []
+    # distances = []
     #send these options to a function that scrapes autotrader with these params
     #TODO: Should check the DB and the scraper would just be constantly running
-    urls, distances = find_listings(formatted_params, urls, distances)
+    urls = find_listings(formatted_params, urls)
     print("found",len(urls),"cars")
     # new_car = get_listing_details(urls[0], distances[0])
     # now send each url and distance to listing details scrape_year
@@ -44,11 +125,11 @@ def search_autotrader():
         if db_result is None:
             print("Car not seen before, scraping car", i+1)
             #maybe send this to the redis worker?
-            new_car = get_listing_details(urls[i], distances[i])
+            new_car = get_listing_details(urls[i])
             autotrader_cars.append(new_car)
             #write the car to the DB
             if "P8JZ" in new_car["vin"]:
-                add_to_autotrader_db(new_car, distances[i])
+                add_to_autotrader_db(new_car)
         else:
             #TODO: should check to see if the url is still a valid listing
             new_car = {}
@@ -56,7 +137,7 @@ def search_autotrader():
             new_car["url"] = db_result.url
             new_car["vin"] = db_result.vin
             new_car["dealer"] = db_result.dealer
-            new_car["distance"] = db_result.distance
+            new_car["zipcode"] = db_result.zipcode
             new_car["address"] = db_result.address
             new_car["phone"] = db_result.phone
             new_car["price"] = db_result.price
@@ -144,6 +225,8 @@ def get_car_build_options(vin):
             db_result = db.session.query(Result).filter_by(vin=vin).first()
             if db_result is None:
                 print("car was not in DB, fetching data for vin", vin)
+                # #temp bypass
+                # return False
                 options = check_vin(vin)
                 if options:
                     if options["stripe"] == "false":
@@ -171,9 +254,9 @@ def get_car_build_options(vin):
     else:
         return False
 
-def add_to_autotrader_db(car, distance):
+def add_to_autotrader_db(car):
     #def __init__(self, price, name, url, vin, dealer, address, phone, listing):
-    result = Autotrader(car['pic'], car["price"], car["name"], car["url"], car["vin"], car["dealer"], car["address"], car["phone"], car["listing"], distance)
+    result = Autotrader(car['pic'], car["price"], car["name"], car["url"], car["vin"], car["dealer"], car["address"], car["phone"], car["listing"], car["zipcode"])
     try:
         db.session.add(result)
         db.session.commit()

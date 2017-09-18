@@ -8,11 +8,11 @@ angular.module('App')
 function HomeCompCtrl($scope, $window, CarList, $sce) {
     var homeComp = this;
     homeComp.cars = "";
-    homeComp.colors = ["Shadow Black", "Grabber Blue", "Lightning Blue", "Magnetic Gray", "Race Red", "Oxford White", "Triple Yellow"];
+    homeComp.colors = ["Avalanche", "Competition Orange", "Deep Impact Blue (Metallic)",  "Shadow Black (Mica)", "Grabber Blue", "Lightning Blue (Metallic)", "Magnetic", "Race Red", "Ruby Red (Metallic)", "Oxford White", "Triple Yellow Tricoat"];
     homeComp.years = ["2016", "2017", "2018"];
     // homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
     homeComp.stripes = ["None","Black W/ White", "White W/ Black", "Blue W/ Black"]
-    homeComp.options = ["Electronics Package", "Convenience Package"]
+    homeComp.options = ["Electronics Package", "Convenience Package", "None"]
     homeComp.zipcode = "";
     homeComp.radius = "";
     homeComp.minYear = "";
@@ -64,15 +64,15 @@ function rankCars(cars) {
             }
             var arr1 = a.price.split("$"),
             arr2 = b.price.split("$");
-            var weight1 = a.distance.split(" "),
-            weight2 = b.distance.split(" ")
+            var weight1 = a.distance,
+            weight2 = b.distance
             if (arr1 == "") {
                 arr1 = ["", "999,999"]
             }
             if (arr2 == "") {
                 arr2 = ["", "999,999"]
             }
-        return parseInt(arr1[1].split(",").join("")) + parseInt(weight1[0]) > parseInt(arr2[1].split(",").join("")) + parseInt(weight2[0]) ? 1 : parseInt(arr1[1].split(",").join("")) + parseInt(weight1[0]) < parseInt(arr2[1].split(",").join("")) + parseInt(weight2[0]) ? -1 : 0;
+        return parseInt(arr1[1].split(",").join("")) + weight1 > parseInt(arr2[1].split(",").join("")) + weight2 ? 1 : parseInt(arr1[1].split(",").join("")) + weight1 < parseInt(arr2[1].split(",").join("")) + weight2 ? -1 : 0;
 
     });
     return carsByPrice

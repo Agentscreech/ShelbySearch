@@ -84,6 +84,7 @@ def get_car_details(vin_number, cookies):
             if "Summary" in status:
                 #handle Unavailable and don't update the DB for it
                 # print(status)
+                primary_features_section = car_details_soup.find_all(class_="table__contents")[2]
                 break
         except requests.exceptions.RequestException as e:
             print(e)
@@ -94,7 +95,6 @@ def get_car_details(vin_number, cookies):
     #title should be Vehical Summary. If it's Vehical Lookup, it was invalid
     # print(status)
     # primary_features_section = car_details_soup.find(id="pfcSummary")
-    primary_features_section = car_details_soup.find_all(class_="table__contents")[2]
     # primary_col1 = primary_features_section.find_all(class_="summaryPrompt")
     # primary_features = primary_features_section.find_all(class_="summaryContent")
     options = {}

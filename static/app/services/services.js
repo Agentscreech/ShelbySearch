@@ -9,9 +9,10 @@ angular.module('App')
                     } else {
                         list = res.data;
                     }
-                    console.log("returning list to homeComp.cars", list)       
+                    console.log("returning list to homeComp.cars", list)
                     return list;
                 });
             }
+    
         }
     }])
