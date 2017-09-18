@@ -33,8 +33,8 @@ def search_cars():
     print(raw_params)
     formatted_params = db_query_format(raw_params)
 
-    valid_zips = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/radius.json/'+str(raw_params["zipcode"])+'/'+str(raw_params["radius"])+"/mile?minimal")
-    zips = valid_zips.json()["zip_codes"]
+    valid_zips = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/radius.json/'+str(raw_params["zipcode"])+'/'+str(raw_params["radius"])+"/mile?minimal").json()
+    zips = valid_zips["zip_codes"]
     # select * from cars inner join search_results on cars.vin = search_results.vin where params
     #DBSession().query(MyTable).filter(or_(*[MyTable.my_column.like(name) for name in foo]))
 
@@ -43,22 +43,29 @@ def search_cars():
         filter(Result.year >= raw_params['minYear']).\
         filter(Result.year <= raw_params['maxYear'])
     for filter_ in formatted_params:
-        db_result.filter(or_(*[Result.color.like(name) for name in formatted_params[filter_]]))
+        if filter_ == "color":
+            db_result = db_result.filter(or_(*[Result.color == name for name in formatted_params[filter_]]))
+        if filter_ == "stripe":
+            db_result = db_result.filter(or_(*[Result.stripe.like(name +"%") for name in formatted_params[filter_]]))
+        # if filter_ == "option":
     filtered_result = db_result.all()
-    returned_zips = []
+    returned_zips = [str(raw_params["zipcode"])]
     for result in filtered_result:
         if result.Autotrader.zipcode not in returned_zips:
             returned_zips.append(result.Autotrader.zipcode)
+    print(returned_zips)
     distance_query = ",".join(item for item in returned_zips)
-    distances = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/match-close.json/'+distance_query+'/'+str(raw_params['radius'])+'/mile')
+    distances = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/match-close.json/'+distance_query+'/'+str(raw_params['radius'])+'/mile').json()
     cars_matched = []
     valid_distances = {}
     valid_distances[str(raw_params["zipcode"])] = "0"
-    for distance in distances.json():
+    for distance in distances:
+        print(distance)
         if distance["zip_code1"] == str(raw_params["zipcode"]):
             valid_distances[distance["zip_code2"]] = distance["distance"]
         if distance["zip_code2"] == str(raw_params["zipcode"]):
             valid_distances[distance["zip_code1"]] = distance["distance"]
+    print(valid_distances)
 
     for car in filtered_result:
         new_car = {}
@@ -77,7 +84,11 @@ def search_cars():
         new_car["electronics"] = car.Result.electronics
         new_car["convenience"] = car.Result.convenience
         new_car["build_date"] = car.Result.build_date
-        new_car["distance"] = int(valid_distances[car.Autotrader.zipcode])
+        if car.Autotrader.zipcode in valid_distances:
+            new_car["distance"] = int(valid_distances[car.Autotrader.zipcode])
+        else:
+            print(car.Autotrader.zipcode, "not in valid_distances")
+            new_car["distance"] = 0
         cars_matched.append(new_car)
     return jsonify(cars_matched), 200
 
@@ -86,17 +97,19 @@ def db_query_format(params):
     formatted = {}
     for param in params:
         if param == "colors":
-            formatted["colors"] = []
+            formatted["color"] = []
             for color in params[param]:
-                formatted["colors"].append(color)
+                formatted["color"].append(color)
         if param == "stripe":
             formatted["stripe"] = []
             for stripe in params[param]:
+                if stripe == "None":
+                    stripe = None
                 formatted["stripe"].append(stripe)
         if param == "options":
-            formatted["options"] = []
+            formatted["option"] = []
             for option in params[param]:
-                formatted["options"].append(option)
+                formatted["option"].append(option)
     for item in list(formatted):
         if not formatted[item]:
             formatted.pop(item, None)

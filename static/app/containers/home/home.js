@@ -11,7 +11,7 @@ function HomeCompCtrl($scope, $window, CarList, $sce) {
     homeComp.colors = ["Avalanche", "Competition Orange", "Deep Impact Blue (Metallic)",  "Shadow Black (Mica)", "Grabber Blue", "Lightning Blue (Metallic)", "Magnetic", "Race Red", "Ruby Red (Metallic)", "Oxford White", "Triple Yellow Tricoat"];
     homeComp.years = ["2016", "2017", "2018"];
     // homeComp.trims = ["Shelby GT350", "Shelby GT350R"];
-    homeComp.stripes = ["None","Black W/ White", "White W/ Black", "Blue W/ Black"]
+    homeComp.stripes = ["None","Black W/White", "White W/Black", "Blue W/Black"]
     homeComp.options = ["Electronics Package", "Convenience Package", "None"]
     homeComp.zipcode = "";
     homeComp.radius = "";
