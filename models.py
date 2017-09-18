@@ -59,9 +59,9 @@ class Result(db.Model):
     convenience = db.Column(db.Boolean)
     # painted_roof = db.Column(db.Boolean)
     build_date = db.Column(db.String())
+    package = db.Column(db.String())
 
-    def __init__(self, vin, year, color, build_date, stripe, electronics, convenience):
-        # self.url = url
+    def __init__(self, vin, year, color, build_date, stripe, electronics, convenience, package):
         self.vin = vin
         self.year = year
         # self.r_model = r_model
@@ -71,10 +71,7 @@ class Result(db.Model):
         self.convenience = convenience
         # self.painted_roof = painted_roof
         self.build_date = build_date
-        # self.price = price
-        # self.dealer = dealer
-        # self.address = address
-        # self.phone = phone
+        self.package = package
 
     def __repr__(self):
         return '<id {}>'.format(self.id)

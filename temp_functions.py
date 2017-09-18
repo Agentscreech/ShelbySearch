@@ -128,3 +128,20 @@ def generate_2017gt350_vins(r=False):
         all_possible_vins.append(calc_check_digit(vin, total))
         counter += 1
     return all_possible_vins
+    
+def calc_check_digit(vin_to_calc, total):
+    '''given a vin number with missing check digt, return vin with calculated check digit'''
+    for i, number in enumerate(vin_to_calc):
+        if i == 13:
+            total += int(number)*5
+        if i == 14:
+            total += int(number)*4
+        if i == 15:
+            total += int(number)*3
+        if i == 16:
+            total += int(number)*2
+    check_digit = total % 11
+    if check_digit == 10:
+        check_digit = "X"
+    calculated_vin = vin_to_calc.replace("_", str(check_digit))
+    return calculated_vin

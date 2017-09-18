@@ -6,8 +6,8 @@ import requests
 from sqlalchemy import or_
 from flask import Flask, send_file, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from etis_scraper import *
-from autotrader_scraper import *
+from etis_scraper import get_car_details
+from autotrader_scraper import find_links, find_listings, get_listing_details
 app = Flask(__name__)
 app.config.from_object(os.environ["APP_SETTINGS"])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -32,13 +32,13 @@ def search_cars():
     # make a zipcode api req to get the valid zips in radius of input zips
     print(raw_params)
     formatted_params = db_query_format(raw_params)
-
-    valid_zips = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/radius.json/'+str(raw_params["zipcode"])+'/'+str(raw_params["radius"])+"/mile?minimal").json()
-    zips = valid_zips["zip_codes"]
+    print(formatted_params)
+    zips = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/radius.json/'+str(raw_params["zipcode"])+'/'+str(raw_params["radius"])+"/mile?minimal").json()["zip_codes"]
+    # zips = valid_zips["zip_codes"]
     # select * from cars inner join search_results on cars.vin = search_results.vin where params
     #DBSession().query(MyTable).filter(or_(*[MyTable.my_column.like(name) for name in foo]))
 
-    db_result = db.session.query(Result,Autotrader).join(Autotrader, Result.vin == Autotrader.vin).\
+    db_result = db.session.query(Result, Autotrader).join(Autotrader, Result.vin == Autotrader.vin).\
         filter(Autotrader.zipcode.in_(zips)).\
         filter(Result.year >= raw_params['minYear']).\
         filter(Result.year <= raw_params['maxYear'])
@@ -47,25 +47,23 @@ def search_cars():
             db_result = db_result.filter(or_(*[Result.color == name for name in formatted_params[filter_]]))
         if filter_ == "stripe":
             db_result = db_result.filter(or_(*[Result.stripe.like(name +"%") for name in formatted_params[filter_]]))
-        # if filter_ == "option":
+        if filter_ == "option":
+            db_result = db_result.filter(or_(*[Result.package == name for name in formatted_params[filter_]]))
     filtered_result = db_result.all()
     returned_zips = [str(raw_params["zipcode"])]
     for result in filtered_result:
         if result.Autotrader.zipcode not in returned_zips:
             returned_zips.append(result.Autotrader.zipcode)
-    print(returned_zips)
     distance_query = ",".join(item for item in returned_zips)
     distances = requests.get('https://www.zipcodeapi.com/rest/'+os.environ["ZIPCODE_API"]+'/match-close.json/'+distance_query+'/'+str(raw_params['radius'])+'/mile').json()
     cars_matched = []
     valid_distances = {}
     valid_distances[str(raw_params["zipcode"])] = "0"
     for distance in distances:
-        print(distance)
         if distance["zip_code1"] == str(raw_params["zipcode"]):
             valid_distances[distance["zip_code2"]] = distance["distance"]
         if distance["zip_code2"] == str(raw_params["zipcode"]):
             valid_distances[distance["zip_code1"]] = distance["distance"]
-    print(valid_distances)
 
     for car in filtered_result:
         new_car = {}
@@ -81,8 +79,7 @@ def search_cars():
         new_car["year"] = car.Result.year
         new_car["color"] = car.Result.color
         new_car["stripe"] = car.Result.stripe
-        new_car["electronics"] = car.Result.electronics
-        new_car["convenience"] = car.Result.convenience
+        new_car["package"] = car.Result.package
         new_car["build_date"] = car.Result.build_date
         if car.Autotrader.zipcode in valid_distances:
             new_car["distance"] = int(valid_distances[car.Autotrader.zipcode])
