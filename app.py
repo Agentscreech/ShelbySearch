@@ -99,17 +99,20 @@ def db_query_format(params):
         if param == "colors":
             formatted["color"] = []
             for color in params[param]:
-                formatted["color"].append(color)
+                if params[param][color]:
+                    formatted["color"].append(color)
         if param == "stripe":
             formatted["stripe"] = []
             for stripe in params[param]:
-                if stripe == "None":
-                    stripe = None
-                formatted["stripe"].append(stripe)
+                if params[param][stripe]:
+                    if stripe == "None":
+                        stripe = "false"
+                    formatted["stripe"].append(stripe)
         if param == "options":
             formatted["option"] = []
             for option in params[param]:
-                formatted["option"].append(option)
+                if params[param][option]:
+                    formatted["option"].append(option)
     for item in list(formatted):
         if not formatted[item]:
             formatted.pop(item, None)
